@@ -1,0 +1,16 @@
+# Core ML
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+opencv-python>=4.8.0
+Pillow>=9.0.0
+
+# LeRobot is installed directly from source (see PLAN.md Phase 2)
+# pip install -e ".[dynamixel]" inside the lerobot clone
+
+# Utilities
+tqdm>=4.65.0
+tensorboard>=2.13.0
+wandb>=0.15.0
+matplotlib>=3.7.0
+scipy>=1.10.0

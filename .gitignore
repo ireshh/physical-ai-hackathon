@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.env
+lerobot_env/
+venv/
+.venv/
+
+# Data (large files — back up separately)
+data/raw/
+data/processed/
+models/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TensorRT
+*.engine
+*.trt
+
+# Logs
+logs/
+runs/
+wandb/
