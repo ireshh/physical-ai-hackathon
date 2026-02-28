@@ -22,11 +22,10 @@ fi
 cd ~/lerobot
 pip install -e ".[dynamixel]"
 
-echo "=== [4/6] Clone LeKiwi (update URL if needed) ==="
-# TODO: confirm correct LeKiwi repo URL with organisers
+echo "=== [4/6] Clone LeKiwi ==="
+# Official repo: https://github.com/SIGRobotics-UIUC/LeKiwi
 if [ ! -d ~/lekiwi ]; then
-    git clone https://github.com/huggingface/lekiwi.git ~/lekiwi || \
-    echo "WARNING: LeKiwi repo URL may have changed — check with organisers"
+    git clone https://github.com/SIGRobotics-UIUC/LeKiwi.git ~/lekiwi
 fi
 
 echo "=== [5/6] Install project requirements ==="

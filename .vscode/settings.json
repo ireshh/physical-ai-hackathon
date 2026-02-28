@@ -1,0 +1,15 @@
+{
+    "python.defaultInterpreterPath": "/home/ozkanali/.conda/envs/lerobot/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "python.analysis.extraPaths": [],
+    "editor.formatOnSave": true,
+    "editor.rulers": [
+        100
+    ],
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/data/raw": false,
+        "**/data/processed": false
+    }
+}

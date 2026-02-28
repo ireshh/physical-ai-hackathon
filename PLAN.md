@@ -1,11 +1,13 @@
 # €5000 Physical AI Hackathon — Master Plan
-> **Team repo:** https://github.com/ireshh/physical-ai-hackathon  
+>
+> **Team repo:** <https://github.com/ireshh/physical-ai-hackathon>  
 > **Last updated:** 2026-02-27  
 > Track everything here. Check boxes as you go. Never skip a phase.
 
 ---
 
 ## Roles (fill in)
+
 | Role | Person |
 |------|--------|
 | Hardware lead | |
@@ -16,17 +18,19 @@
 ---
 
 ## Phase 0 — Pre-Hackathon Prep
-- [ ] Read LeRobot SO-101 docs: https://github.com/huggingface/lerobot
-- [ ] Read LeKiwi docs: https://github.com/huggingface/lekiwi (or the correct repo URL from organizers)
+
+- [ ] Read LeRobot SO-101 docs: <https://github.com/huggingface/lerobot>
+- [ ] Read LeKiwi docs: <https://github.com/SIGRobotics-UIUC/LeKiwi>
 - [ ] Confirm team roles above
 - [ ] Confirm task: **Object Fetch and Sort** (robot navigates to a coloured cube, picks it up, drops it in a bin)
 - [ ] Pre-download large model weights (see `scripts/prefetch_models.sh`) on fast WiFi
-- [ ] Claim Vercel GPU credits with code `ROBOTICS-NATION-HACKATHON` (max 2 per team)
+- [ ] Claim GPU credits with code `ROBOTICS-NATION-HACKATHON` (max 2 per team) — **verify with organisers which provider** (Vercel is frontend-only; it's likely a partner GPU provider)
 - [ ] Prepare fallback demo video slot — record one during Phase 8
 
 ---
 
 ## Phase 1 — Hardware Setup & Verification
+
 - [ ] Physically inspect SO-101 leader arm (7.5V) — note any broken plastic
 - [ ] Physically inspect SO-101 follower arm + gripper camera (12V)
 - [ ] Inspect LeKiwi base + base camera (12V)
@@ -41,12 +45,13 @@
 ---
 
 ## Phase 2 — Software Environment on Jetson
+
 - [ ] SSH into Jetson: `ssh jetsonlX@192.168.55.1` (replace X)
 - [ ] `sudo apt update && sudo apt upgrade -y`
 - [ ] Install deps: `sudo apt install python3-pip python3-venv git cmake build-essential`
 - [ ] Create venv: `python3 -m venv lerobot_env && source lerobot_env/bin/activate`
 - [ ] Clone LeRobot: `git clone https://github.com/huggingface/lerobot.git`
-- [ ] Clone LeKiwi (confirm repo URL with organisers)
+- [ ] Clone LeKiwi: `git clone https://github.com/SIGRobotics-UIUC/LeKiwi.git ~/lekiwi`
 - [ ] `cd lerobot && pip install -e ".[dynamixel]"` (include extras for hardware)
 - [ ] Install LeKiwi deps (per its README)
 - [ ] Clone **this repo** on Jetson and install project deps: `pip install -r requirements.txt`
@@ -58,6 +63,7 @@
 ---
 
 ## Phase 3 — Calibration
+
 - [ ] Calibrate leader arm: `python lerobot/scripts/calibrate.py --robot so101`
 - [ ] Calibrate follower arm
 - [ ] Save calibration JSON to `data/` and commit
@@ -68,6 +74,7 @@
 ---
 
 ## Phase 4 — Data Collection
+
 - [ ] Set up fixed task arena (consistent lighting, cube + bin positions)
 - [ ] Run teleoperation: `python lerobot/scripts/teleoperate.py --robot so101`
 - [ ] Dry-run 5 episodes to feel out the task
@@ -83,6 +90,7 @@
 ---
 
 ## Phase 5 — Training (Cloud GPU)
+
 - [ ] Launch GPU instance via Vercel (or confirmed alternative provider)
 - [ ] Copy dataset to cloud instance with `rsync` or `scp`
 - [ ] Set up Python venv + LeRobot on cloud (same steps as Phase 2)
@@ -98,6 +106,7 @@
 ---
 
 ## Phase 6 — Deployment on Jetson
+
 - [ ] Transfer model checkpoint to Jetson (`scp` or USB)
 - [ ] Convert to TensorRT for faster inference: `scripts/convert_to_tensorrt.sh`
 - [ ] Run `src/inference/run_policy.py` — arm only, base locked
@@ -110,6 +119,7 @@
 ---
 
 ## Phase 7 — Base + Arm Integration
+
 - [ ] Test end-to-end policy (base + arm in one policy) — preferred if data included base motion
 - [ ] If separate: navigation to object via `src/navigation/navigate.py`, then arm policy
 - [ ] Object detection working (YOLO or colour segmentation via `src/navigation/detect_object.py`)
@@ -121,6 +131,7 @@
 ---
 
 ## Phase 8 — Polish & Testing
+
 - [ ] Test under varied lighting conditions
 - [ ] Test with object at 5 different positions
 - [ ] Implement and test fallback (retry if grasp fails)
@@ -133,6 +144,7 @@
 ---
 
 ## Phase 9 — Presentation & Demo
+
 - [ ] Presentation slides created (see structure below)
 - [ ] Live demo rehearsed ≥ 3 times
 - [ ] Backup video ready to play if live demo fails
@@ -140,6 +152,7 @@
 - [ ] Team knows answers to likely judge questions (see `docs/judge_prep.md`)
 
 ### Slide structure (7 min total)
+
 1. **Problem** (1 min) — what task, why impressive
 2. **Approach** (2 min) — imitation learning with LeRobot, data pipeline, ACT policy, Jetson deployment
 3. **Live Demo** (2 min)
@@ -149,6 +162,7 @@
 ---
 
 ## Best Practices Checklist
+
 - [ ] All code in git from day 1
 - [ ] `README.md` updated with how to run everything
 - [ ] Virtual environment used on all machines
@@ -160,6 +174,7 @@
 ---
 
 ## Common Pitfalls — Read Before You Start
+
 | Pitfall | Mitigation |
 |---------|-----------|
 | Wrong voltages | Check with multimeter; leader = 7.5V, rest = 12V |
@@ -173,6 +188,7 @@
 ---
 
 ## Key Commands Reference
+
 ```bash
 # SSH into Jetson
 ssh jetsonlX@192.168.55.1
