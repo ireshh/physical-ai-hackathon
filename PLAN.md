@@ -29,62 +29,62 @@
 
 ---
 
-## Phase 1 — Hardware Setup & Verification
-
-- [ ] Physically inspect SO-101 leader arm (7.5V) — note any broken plastic
-- [ ] Physically inspect SO-101 follower arm + gripper camera (12V)
-- [ ] Inspect LeKiwi base + base camera (12V)
-- [ ] Jetson Orin Nano boots correctly (JetPack installed per organisers)
-- [ ] Confirm correct voltages with multimeter before powering (leader=7.5V, follower+base=12V)
-- [ ] All LEDs show normal state on power-up
-- [ ] Gripper camera detected by OS (`ls /dev/video*`)
-- [ ] Base camera detected by OS
-
-### Phase 1.5 — Motor ID Configuration (ONE-TIME, do this before anything else)
+## Phase 1 — Motor ID Configuration ⚡ DO THIS FIRST ON-SITE
 
 > The SO-101 uses **Feetech STS3215** servos. Each motor ships with default ID=1.
 > You must set unique IDs (1–6 for arm, 7–9 for base wheels) before the robot can work.
-> This is written to motor EEPROM — you only do it once per motor set.
+> This is written to motor EEPROM — **do it once, it survives power cycles**.
+>
+> ℹ️ The organisers said arms were *"hopefully already built and ID'd"* — but also said
+> *"Maybe ID follower arm again."* **Always verify with `test_motors.sh` first.
+> Only re-run setup-motors if the test fails.**
 
-**On the Jetson (via SSH) or directly connected laptop:**
+- [ ] Physically inspect SO-101 leader arm — note any broken plastic or missing parts
+- [ ] Physically inspect SO-101 follower arm + gripper camera
+- [ ] Inspect LeKiwi base + base camera
+- [ ] Confirm correct voltages before powering (leader=7.5V, follower+base=12V)
+- [ ] Connect motor control board to laptop via USB + power supply
+- [ ] Find the USB port:
 
-1. Connect the motor control board to the computer via USB + power supply
-2. Find which USB port the board is on:
+  ```bash
+  lerobot-find-port
+  # Disconnect USB when prompted → note the port (e.g. /dev/ttyUSB0)
+  ```
 
-   ```bash
-   lerobot-find-port
-   # Disconnect USB when prompted → note the port printed (e.g. /dev/ttyUSB0)
-   ```
+- [ ] **Verify IDs first** — run `scripts/test_motors.sh`. If all 9 motors respond → skip to Phase 2.
+- [ ] If test fails, set IDs for **follower arm** (one motor at a time as prompted):
 
-3. Set IDs for the **follower arm** (motors 1–6, done one at a time as prompted):
+  ```bash
+  lerobot-setup-motors \
+    --robot.type=so101_follower \
+    --robot.port=/dev/ttyUSB0
+  ```
 
-   ```bash
-   lerobot-setup-motors \
-     --robot.type=so101_follower \
-     --robot.port=/dev/ttyUSB0   # ← your port from step 2
-   ```
+  Connect each motor **individually** in order: gripper(6) → wrist_roll(5) → wrist_flex(4) → elbow_flex(3) → shoulder_lift(2) → shoulder_pan(1). One at a time, not daisy-chained.
+- [ ] Set IDs for **leader arm**:
 
-   The script asks you to connect each motor individually in order: gripper(6), wrist_roll(5), wrist_flex(4), elbow_flex(3), shoulder_lift(2), shoulder_pan(1). Connect ONLY the motor being configured each time.
+  ```bash
+  lerobot-setup-motors \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyUSB1
+  ```
 
-4. Set IDs for the **leader arm** (teleoperator):
+- [ ] Set IDs for **LeKiwi base wheels** (7, 8, 9) via the combined lekiwi command:
 
-   ```bash
-   lerobot-setup-motors \
-     --teleop.type=so101_leader \
-     --teleop.port=/dev/ttyUSB1   # ← your port for leader board
-   ```
+  ```bash
+  lerobot-setup-motors \
+    --robot.type=lekiwi \
+    --robot.port=/dev/ttyUSB0
+  # Sets arm motors 1–6 first, then wheel motors 7, 8, 9
+  ```
 
-5. Set IDs for the **LeKiwi base wheels** (7, 8, 9) — this happens as part of the combined lekiwi setup:
-
-   ```bash
-   lerobot-setup-motors \
-     --robot.type=lekiwi \
-     --robot.port=/dev/ttyUSB0   # ← port for the kiwi board
-   # Sets arm motors 1–6 first, then wheel motors 7, 8, 9
-   ```
-
-6. Label each motor with its ID (tape + marker) — prevents confusion later
-7. Daisy-chain all motors in the correct order; connect motor 1 (shoulder_pan) to the controller board
+- [ ] Label each motor with its ID (tape + marker)
+- [ ] Daisy-chain motors in order after IDs are set; motor 1 (shoulder_pan) connects to board
+- [ ] Re-run `scripts/test_motors.sh` — all 9 motors must respond before continuing
+- [ ] Jetson Orin Nano boots correctly (JetPack installed per organisers)
+- [ ] All LEDs show normal state on power-up
+- [ ] Gripper camera detected by OS (`ls /dev/video*`)
+- [ ] Base camera detected by OS
 
 ---
 
@@ -310,6 +310,7 @@
 | Disk `/` | ~27 GB free | Tight — do NOT install large packages here |
 | Disk `/home` | ~226 GB free | Use this for conda envs, data, models |
 | Python env | conda `lerobot` (3.10) | `conda activate lerobot` |
+What matters: never run pip install globally, always use conda activate lerobot first.
 
 ---
 
