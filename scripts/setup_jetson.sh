@@ -20,7 +20,9 @@ if [ ! -d ~/lerobot ]; then
     git clone https://github.com/huggingface/lerobot.git ~/lerobot
 fi
 cd ~/lerobot
-pip install -e ".[dynamixel]"
+# feetech = SO-101 STS3215 motor SDK (NOT dynamixel — SO-101 uses Feetech)
+# lekiwi  = adds ZeroMQ for base communication
+pip install -e ".[feetech,lekiwi]"
 
 echo "=== [4/6] Clone LeKiwi ==="
 # Official repo: https://github.com/SIGRobotics-UIUC/LeKiwi

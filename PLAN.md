@@ -35,12 +35,56 @@
 - [ ] Physically inspect SO-101 follower arm + gripper camera (12V)
 - [ ] Inspect LeKiwi base + base camera (12V)
 - [ ] Jetson Orin Nano boots correctly (JetPack installed per organisers)
-- [ ] Verify all Dynamixel IDs on follower arm (re-ID if needed per LeRobot docs)
-- [ ] Label each motor with its ID (tape + marker)
-- [ ] Confirm correct voltages with multimeter before powering (7.5V / 12V / 12V)
+- [ ] Confirm correct voltages with multimeter before powering (leader=7.5V, follower+base=12V)
 - [ ] All LEDs show normal state on power-up
 - [ ] Gripper camera detected by OS (`ls /dev/video*`)
 - [ ] Base camera detected by OS
+
+### Phase 1.5 — Motor ID Configuration (ONE-TIME, do this before anything else)
+
+> The SO-101 uses **Feetech STS3215** servos. Each motor ships with default ID=1.
+> You must set unique IDs (1–6 for arm, 7–9 for base wheels) before the robot can work.
+> This is written to motor EEPROM — you only do it once per motor set.
+
+**On the Jetson (via SSH) or directly connected laptop:**
+
+1. Connect the motor control board to the computer via USB + power supply
+2. Find which USB port the board is on:
+
+   ```bash
+   lerobot-find-port
+   # Disconnect USB when prompted → note the port printed (e.g. /dev/ttyUSB0)
+   ```
+
+3. Set IDs for the **follower arm** (motors 1–6, done one at a time as prompted):
+
+   ```bash
+   lerobot-setup-motors \
+     --robot.type=so101_follower \
+     --robot.port=/dev/ttyUSB0   # ← your port from step 2
+   ```
+
+   The script asks you to connect each motor individually in order: gripper(6), wrist_roll(5), wrist_flex(4), elbow_flex(3), shoulder_lift(2), shoulder_pan(1). Connect ONLY the motor being configured each time.
+
+4. Set IDs for the **leader arm** (teleoperator):
+
+   ```bash
+   lerobot-setup-motors \
+     --teleop.type=so101_leader \
+     --teleop.port=/dev/ttyUSB1   # ← your port for leader board
+   ```
+
+5. Set IDs for the **LeKiwi base wheels** (7, 8, 9) — this happens as part of the combined lekiwi setup:
+
+   ```bash
+   lerobot-setup-motors \
+     --robot.type=lekiwi \
+     --robot.port=/dev/ttyUSB0   # ← port for the kiwi board
+   # Sets arm motors 1–6 first, then wheel motors 7, 8, 9
+   ```
+
+6. Label each motor with its ID (tape + marker) — prevents confusion later
+7. Daisy-chain all motors in the correct order; connect motor 1 (shoulder_pan) to the controller board
 
 ---
 
@@ -51,9 +95,9 @@
 - [ ] Install deps: `sudo apt install python3-pip python3-venv git cmake build-essential`
 - [ ] Create venv: `python3 -m venv lerobot_env && source lerobot_env/bin/activate`
 - [ ] Clone LeRobot: `git clone https://github.com/huggingface/lerobot.git`
-- [ ] Clone LeKiwi: `git clone https://github.com/SIGRobotics-UIUC/LeKiwi.git ~/lekiwi`
-- [ ] `cd lerobot && pip install -e ".[dynamixel]"` (include extras for hardware)
-- [ ] Install LeKiwi deps (per its README)
+- [ ] Clone LeKiwi hardware docs (assembly): `git clone https://github.com/SIGRobotics-UIUC/LeKiwi.git ~/lekiwi`
+- [ ] `cd lerobot && pip install -e ".[feetech,lekiwi]"` — **feetech** for arm motors, **lekiwi** adds ZeroMQ for base comms
+  - ⚠️ NOT `.[dynamixel]` — SO-101 uses Feetech STS3215, not Dynamixel
 - [ ] Clone **this repo** on Jetson and install project deps: `pip install -r requirements.txt`
 - [ ] Run `scripts/test_motors.sh` — all motors respond
 - [ ] Run `scripts/test_cameras.sh` — both cameras stream
@@ -64,10 +108,30 @@
 
 ## Phase 3 — Calibration
 
-- [ ] Calibrate leader arm: `python lerobot/scripts/calibrate.py --robot so101`
-- [ ] Calibrate follower arm
-- [ ] Save calibration JSON to `data/` and commit
-- [ ] Calibrate LeKiwi wheels/odometry (see LeKiwi docs)
+> Calibration maps raw motor encoder values to physical joint angles.
+> It's stored in `~/.cache/huggingface/lerobot/calibration/` and must be done once per arm.
+> The wheels do **not** need calibration — only arm joints.
+
+- [ ] Calibrate **follower arm on Jetson** (run via SSH on Jetson):
+
+  ```bash
+  lerobot-calibrate \
+    --robot.type=lekiwi \
+    --robot.id=my_kiwi
+  ```
+
+  Move robot to middle of all joint ranges → press Enter → sweep every joint through full range
+- [ ] Calibrate **leader arm on laptop**:
+
+  ```bash
+  lerobot-calibrate \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/ttyUSB1 \
+    --teleop.id=my_leader
+  ```
+
+- [ ] Verify calibration files exist: `ls ~/.cache/huggingface/lerobot/calibration/`
+- [ ] Copy calibration files to `data/calibration/` in this repo and commit
 - [ ] Test gripper camera focus/exposure in `src/utils/camera_test.py`
 - [ ] Verify joint limits are respected (no motor stalling)
 
@@ -76,15 +140,40 @@
 ## Phase 4 — Data Collection
 
 - [ ] Set up fixed task arena (consistent lighting, cube + bin positions)
-- [ ] Run teleoperation: `python lerobot/scripts/teleoperate.py --robot so101`
+- [ ] Run teleoperation — on Jetson (via SSH) run the host process:
+
+  ```bash
+  python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=my_kiwi
+  ```
+
+  Then on laptop run the teleoperation client (set `remote_ip` to Jetson's IP first):
+
+  ```bash
+  python ~/lerobot/examples/lekiwi/teleoperate.py
+  ```
+
+  Controls: leader arm = follower arm, WASD = base movement, ZX = turn, RF = speed
 - [ ] Dry-run 5 episodes to feel out the task
 - [ ] Collect **≥50 successful episodes** with varied object placement
   - [ ] 10 episodes collected
   - [ ] 25 episodes collected
   - [ ] 50 episodes collected
-- [ ] Spot-check recordings (play back 5 random episodes)
+- [ ] Record dataset (on laptop, after setting `remote_ip`, `repo_id`, `task` in the script):
+
+  ```bash
+  python ~/lerobot/examples/lekiwi/record.py
+  # Dataset auto-uploads to your HuggingFace Hub account
+  ```
+
+  Pre-requisite: `huggingface-cli login --token YOUR_TOKEN`
+- [ ] Spot-check recordings — replay an episode:
+
+  ```bash
+  python ~/lerobot/examples/lekiwi/replay.py
+  ```
+
 - [ ] Remove failed/bad episodes
-- [ ] Backup dataset: copy to Google Drive / USB / cloud
+- [ ] Backup dataset: it's on HuggingFace Hub automatically; also copy to USB
 - [ ] Note dataset stats in `docs/dataset_notes.md`
 
 ---
@@ -95,10 +184,32 @@
 - [ ] Copy dataset to cloud instance with `rsync` or `scp`
 - [ ] Set up Python venv + LeRobot on cloud (same steps as Phase 2)
 - [ ] Install PyTorch with CUDA: `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121`
-- [ ] Choose policy — **ACT** (Action Chunking Transformer) recommended for visual manipulation
-- [ ] First training run (quick 50-epoch smoke test to catch bugs)
-- [ ] Full training run (200+ epochs); monitor loss in TensorBoard / W&B
-- [ ] Validate on held-out episodes — success rate ≥ 70% target
+- [ ] Choose policy — **ACT** recommended for visual manipulation (good chunk-size handling)
+- [ ] First training run (quick smoke test to catch bugs):
+
+  ```bash
+  lerobot-train \
+    --policy=act \
+    --dataset.repo_id=YOUR_HF_USERNAME/your-dataset-name
+  ```
+
+- [ ] Full training run (monitor loss in W&B or TensorBoard):
+
+  ```bash
+  lerobot-train \
+    --policy=act \
+    --dataset.repo_id=YOUR_HF_USERNAME/your-dataset-name \
+    --training.num_epochs=200 \
+    --device=cuda
+  ```
+
+- [ ] Evaluate trained policy in replay mode:
+
+  ```bash
+  python ~/lerobot/examples/lekiwi/evaluate.py
+  ```
+
+- [ ] Validate — success rate ≥ 70% target
 - [ ] If success rate low: collect more data (go to Phase 4) or tune hyperparameters
 - [ ] Download best checkpoint to `models/` and commit hash to `docs/training_notes.md`
 - [ ] Backup checkpoint to USB/Drive
@@ -178,12 +289,27 @@
 | Pitfall | Mitigation |
 |---------|-----------|
 | Wrong voltages | Check with multimeter; leader = 7.5V, rest = 12V |
-| Motor IDs wrong | Re-run ID assignment; label each motor |
+| Wrong motor SDK | SO-101 uses **Feetech STS3215**, NOT Dynamixel. Install `.[feetech,lekiwi]` |
+| Motor IDs not set | Run `lerobot-setup-motors` before anything else (Phase 1.5 in this plan) |
 | Poor grasp data | Review episodes after every 10; delete bad ones |
 | Slow inference on Jetson | Use TensorRT; profile before the demo |
 | Last-minute integration | Start integration in Phase 6, not Phase 8 |
 | Live demo failure | Have backup video; practice 3+ times |
 | Internet down during training | Pre-download weights in Phase 0 |
+| Writing data to wrong disk | Laptop `/` has only 27 GB free — **always use `/home` (234 GB free)** |
+
+---
+
+## System Info (this laptop)
+
+| Resource | Value | Notes |
+|----------|-------|-------|
+| CPU | i3-1215U, 6 cores | Fine for code editing |
+| RAM | 15 GB | Fine |
+| GPU | **None** | Training → Jetson or cloud only |
+| Disk `/` | ~27 GB free | Tight — do NOT install large packages here |
+| Disk `/home` | ~226 GB free | Use this for conda envs, data, models |
+| Python env | conda `lerobot` (3.10) | `conda activate lerobot` |
 
 ---
 
@@ -193,26 +319,48 @@
 # SSH into Jetson
 ssh jetsonlX@192.168.55.1
 
-# Activate venv
-source lerobot_env/bin/activate
+# Activate venv (Jetson)
+source ~/lerobot_env/bin/activate
+# OR if using conda on laptop
+conda activate lerobot
 
-# Teleoperate
-python lerobot/scripts/teleoperate.py --robot so101
+# --- MOTOR SETUP (one-time) ---
+lerobot-find-port                      # find USB port of motor board
+lerobot-setup-motors \
+  --robot.type=lekiwi \
+  --robot.port=/dev/ttyUSB0            # set IDs for all arm + base motors
 
-# Record data
-python lerobot/scripts/record.py --robot so101 --fps 30 --episodes 50
+# --- CALIBRATION ---
+# On Jetson (follower arm + base):
+lerobot-calibrate --robot.type=lekiwi --robot.id=my_kiwi
+# On laptop (leader arm):
+lerobot-calibrate --teleop.type=so101_leader \
+  --teleop.port=/dev/ttyUSB0 --teleop.id=my_leader
 
-# Train (on cloud)
-python lerobot/scripts/train.py \
-  --policy.type=act \
-  --dataset.root=data/processed/dataset_v1 \
-  --train.batch_size=16 \
-  --train.epochs=200 \
+# --- TELEOPERATION ---
+# Step 1 — on Jetson:
+python -m lerobot.robots.lekiwi.lekiwi_host --robot.id=my_kiwi
+# Step 2 — on laptop (set remote_ip in script first):
+python ~/lerobot/examples/lekiwi/teleoperate.py
+# Keys: WASD=drive  ZX=turn  RF=speed  leader-arm=follower-arm
+
+# --- RECORD DATASET (on laptop) ---
+# Set remote_ip, repo_id, task in script first:
+python ~/lerobot/examples/lekiwi/record.py
+
+# --- REPLAY EPISODE ---
+python ~/lerobot/examples/lekiwi/replay.py
+
+# --- TRAIN (on cloud GPU) ---
+lerobot-train \
+  --policy=act \
+  --dataset.repo_id=YOUR_HF_USER/your-dataset \
+  --training.num_epochs=200 \
   --device=cuda
 
-# Run inference on Jetson
-python src/inference/run_policy.py --checkpoint models/best_checkpoint.pt
+# --- EVALUATE POLICY (on Jetson) ---
+python ~/lerobot/examples/lekiwi/evaluate.py
 
-# Navigate to object
+# --- NAVIGATE TO OBJECT (custom, this repo) ---
 python src/navigation/navigate.py --target cube --color red
 ```
